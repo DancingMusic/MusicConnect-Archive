@@ -2,6 +2,8 @@
 
 [Internet Archive](https://archive.org) music connector for [DancingMusic](https://github.com/DancingMusic/DancingMusic).
 
+🔗 **Live demo:** [https://dancingmusic.github.io/MusicConnect-Archive/](https://dancingmusic.github.io/MusicConnect-Archive/) — search + play table built from this connector's own `dist/index.js`.
+
 Implements the `MusicConnector` interface from `@dancingmusic/music-store` against the public archive.org audio catalog. 100% open-source / public-domain content — no API key, no auth, CORS-friendly.
 
 ## Use in DancingMusic
