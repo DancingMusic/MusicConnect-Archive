@@ -81,14 +81,13 @@ function docToTrack(doc: ArchiveDoc): MusicTrack {
 }
 
 function pickPlayableFile(files: ArchiveFile[]): ArchiveFile | null {
-  // Prefer MP3 derivative, then OGG, then any audio
-  const byExt = (ext: RegExp) => files.find(f => ext.test(f.name) && f.source !== "original" || ext.test(f.name));
+  // Prefer derivative MP3 (smaller, web-optimized) over original; fall back to
+  // any MP3, then OGG / WAV / FLAC / M4A.
   return (
     files.find(f => /\.mp3$/i.test(f.name) && f.source === "derivative") ||
     files.find(f => /\.mp3$/i.test(f.name)) ||
     files.find(f => /\.ogg$/i.test(f.name)) ||
     files.find(f => /\.(wav|flac|m4a)$/i.test(f.name)) ||
-    byExt(/\.mp3$/i) ||
     null
   );
 }
@@ -115,15 +114,10 @@ export class ArchiveConnector implements MusicConnector {
       return { tracks: [], total: 0, page, pageSize };
     }
 
-    // Build a query that returns audio items with the keyword in metadata
-    const q = `mediatype:(audio) AND (${keyword})`;
-    const params = new URLSearchParams({
-      q,
-      "fl[]": "identifier",
-      output: "json",
-      rows: String(pageSize),
-      page: String(page),
-    });
+    // Build a query that returns audio items WITH playable mp3 files
+    // (without the format filter, IA returns many podcast/talk items that have
+    // no streamable mp3 in their file list)
+    const q = `mediatype:(audio) AND format:"VBR MP3" AND (${keyword})`;
     // URLSearchParams collapses repeated keys; build manually for the fl[] list
     const flList = ["identifier", "title", "creator", "date", "runtime"]
       .map(f => `fl[]=${encodeURIComponent(f)}`)

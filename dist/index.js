@@ -31,8 +31,7 @@ function docToTrack(doc) {
   };
 }
 function pickPlayableFile(files) {
-  const byExt = (ext) => files.find((f) => ext.test(f.name) && f.source !== "original" || ext.test(f.name));
-  return files.find((f) => /\.mp3$/i.test(f.name) && f.source === "derivative") || files.find((f) => /\.mp3$/i.test(f.name)) || files.find((f) => /\.ogg$/i.test(f.name)) || files.find((f) => /\.(wav|flac|m4a)$/i.test(f.name)) || byExt(/\.mp3$/i) || null;
+  return files.find((f) => /\.mp3$/i.test(f.name) && f.source === "derivative") || files.find((f) => /\.mp3$/i.test(f.name)) || files.find((f) => /\.ogg$/i.test(f.name)) || files.find((f) => /\.(wav|flac|m4a)$/i.test(f.name)) || null;
 }
 var ArchiveConnector = class {
   constructor() {
@@ -53,14 +52,7 @@ var ArchiveConnector = class {
     if (!keyword) {
       return { tracks: [], total: 0, page, pageSize };
     }
-    const q = `mediatype:(audio) AND (${keyword})`;
-    const params = new URLSearchParams({
-      q,
-      "fl[]": "identifier",
-      output: "json",
-      rows: String(pageSize),
-      page: String(page)
-    });
+    const q = `mediatype:(audio) AND format:"VBR MP3" AND (${keyword})`;
     const flList = ["identifier", "title", "creator", "date", "runtime"].map((f) => `fl[]=${encodeURIComponent(f)}`).join("&");
     const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}`;
     const res = await fetch(url);
