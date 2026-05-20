@@ -39,8 +39,8 @@ var ArchiveConnector = class {
       id: "internet-archive",
       name: "Internet Archive",
       description: "Public-domain & open audio from archive.org",
-      version: "0.1.0",
-      capabilities: ["search", "stream"]
+      version: "0.2.0",
+      capabilities: ["search", "stream", "playlist"]
     };
   }
   async init() {
@@ -104,6 +104,56 @@ var ArchiveConnector = class {
     const res = await fetch(`${META_URL}/${encodeURIComponent(identifier)}`);
     if (!res.ok) return null;
     return await res.json();
+  }
+  // ----- Playlists -----
+  //
+  // Archive doesn't have "playlists"; it has *collections* (curated buckets
+  // of items). We surface those as virtual playlists. `category` is a
+  // keyword to filter collections by (default returns popular audio
+  // collections like "etree" / "audio_bookspoetry" / "jamendo").
+  //
+  // Playlist id format: `ia-collection:<collection-identifier>`
+  async listPlaylists(query = {}) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 30;
+    const filter = query.category ? ` AND (${query.category})` : "";
+    const q = `mediatype:collection AND format:Collection${filter}`;
+    const flList = ["identifier", "title", "description", "creator"].map((f) => `fl[]=${encodeURIComponent(f)}`).join("&");
+    const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}&sort[]=downloads+desc`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Archive collections fetch failed: ${res.status}`);
+    const data = await res.json();
+    const docs = data.response?.docs ?? [];
+    return {
+      playlists: docs.map((d) => ({
+        id: `ia-collection:${d.identifier}`,
+        name: s(d.title) || d.identifier,
+        description: typeof d.description === "string" ? d.description.slice(0, 200) : Array.isArray(d.description) ? d.description[0]?.slice(0, 200) : void 0,
+        coverUrl: `${COVER_URL}/${encodeURIComponent(d.identifier)}`,
+        curator: s(d.creator) || void 0,
+        externalUrl: `https://archive.org/details/${d.identifier}`
+      })),
+      total: data.response?.numFound ?? docs.length,
+      page,
+      pageSize
+    };
+  }
+  async getPlaylistTracks(playlistId, opts = {}) {
+    const page = opts.page ?? 1;
+    const pageSize = opts.pageSize ?? 30;
+    const raw = playlistId.startsWith("ia-collection:") ? playlistId.slice("ia-collection:".length) : playlistId;
+    const q = `mediatype:audio AND format:"VBR MP3" AND collection:(${raw})`;
+    const flList = ["identifier", "title", "creator", "date", "runtime"].map((f) => `fl[]=${encodeURIComponent(f)}`).join("&");
+    const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}`;
+    const res = await fetch(url);
+    if (!res.ok) return { tracks: [], total: 0, page, pageSize };
+    const data = await res.json();
+    return {
+      tracks: (data.response?.docs ?? []).map(docToTrack),
+      total: data.response?.numFound ?? 0,
+      page,
+      pageSize
+    };
   }
 };
 var index_default = ArchiveConnector;

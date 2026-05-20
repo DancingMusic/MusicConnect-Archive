@@ -51,6 +51,52 @@ describe("ArchiveConnector (contract)", () => {
     expect(t.durationSec).toBe(225); // 3:45
   });
 
+  it("listPlaylists returns collection-shaped results", async () => {
+    mockFetch({
+      "/advancedsearch.php": {
+        response: {
+          numFound: 1,
+          docs: [{
+            identifier: "etree",
+            title: "Live Music Archive",
+            description: "Concerts and live recordings.",
+            creator: "various",
+          }],
+        },
+      },
+    });
+    const c = new ArchiveConnector();
+    await c.init();
+    const r = await c.listPlaylists!();
+    expect(r.playlists).toHaveLength(1);
+    const p = r.playlists[0];
+    expect(p.id).toBe("ia-collection:etree");
+    expect(p.name).toBe("Live Music Archive");
+    expect(p.externalUrl).toContain("archive.org/details/etree");
+  });
+
+  it("getPlaylistTracks resolves tracks of a collection", async () => {
+    mockFetch({
+      "/advancedsearch.php": {
+        response: {
+          numFound: 1,
+          docs: [{
+            identifier: "etree-show-1",
+            title: "Live Show",
+            creator: "Demo Band",
+            date: "2010-01-01",
+            runtime: "5:00",
+          }],
+        },
+      },
+    });
+    const c = new ArchiveConnector();
+    await c.init();
+    const r = await c.getPlaylistTracks!("ia-collection:etree");
+    expect(r.tracks).toHaveLength(1);
+    expect(r.tracks[0].id).toBe("ia:etree-show-1");
+  });
+
   it("getStreamUrl picks an mp3 from metadata", async () => {
     mockFetch({
       "/metadata/jamendo-058176": {
