@@ -1,6 +1,6 @@
 {
   "name": "@dancingmusic/music-connect-archive",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Internet Archive music connector for DancingMusic. Implements MusicConnector against archive.org's public audio catalog.",
   "type": "module",
   "main": "./dist/index.js",

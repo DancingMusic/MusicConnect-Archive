@@ -75,6 +75,24 @@ describe("ArchiveConnector (contract)", () => {
     expect(p.externalUrl).toContain("archive.org/details/etree");
   });
 
+  it("listPlaylists forwards sort to upstream sort field", async () => {
+    let sawSort = "";
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      const m = url.match(/sort\[\]=([^&]+)/);
+      if (m) sawSort = decodeURIComponent(m[1]);
+      return Promise.resolve(new Response(JSON.stringify({ response: { numFound: 0, docs: [] } }), {
+        status: 200, headers: { "content-type": "application/json" },
+      }));
+    });
+    const c = new ArchiveConnector();
+    await c.init();
+    await c.listPlaylists!({ sort: "new" });
+    expect(sawSort).toBe("publicdate+desc");
+    await c.listPlaylists!({ sort: "hot" });
+    expect(sawSort).toBe("downloads+desc");
+  });
+
   it("getPlaylistTracks resolves tracks of a collection", async () => {
     mockFetch({
       "/advancedsearch.php": {

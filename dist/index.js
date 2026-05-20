@@ -119,7 +119,8 @@ var ArchiveConnector = class {
     const filter = query.category ? ` AND (${query.category})` : "";
     const q = `mediatype:collection AND format:Collection${filter}`;
     const flList = ["identifier", "title", "description", "creator"].map((f) => `fl[]=${encodeURIComponent(f)}`).join("&");
-    const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}&sort[]=downloads+desc`;
+    const sortField = query.sort === "new" ? "publicdate+desc" : "downloads+desc";
+    const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}&sort[]=${sortField}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Archive collections fetch failed: ${res.status}`);
     const data = await res.json();

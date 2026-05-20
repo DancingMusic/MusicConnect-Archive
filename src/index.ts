@@ -202,7 +202,10 @@ export class ArchiveConnector implements MusicConnector {
     const flList = ["identifier", "title", "description", "creator"]
       .map(f => `fl[]=${encodeURIComponent(f)}`)
       .join("&");
-    const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}&sort[]=downloads+desc`;
+    // Archive ordering: downloads desc (= hot) or publicdate desc (= new).
+    // "trending" falls back to "hot".
+    const sortField = query.sort === "new" ? "publicdate+desc" : "downloads+desc";
+    const url = `${SEARCH_URL}?q=${encodeURIComponent(q)}&${flList}&output=json&rows=${pageSize}&page=${page}&sort[]=${sortField}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Archive collections fetch failed: ${res.status}`);
     const data = (await res.json()) as ArchiveSearchResponse & {
