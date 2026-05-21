@@ -39,8 +39,8 @@ var ArchiveConnector = class {
       id: "internet-archive",
       name: "Internet Archive",
       description: "Public-domain & open audio from archive.org",
-      version: "0.2.0",
-      capabilities: ["search", "stream", "playlist"]
+      version: "0.4.0",
+      capabilities: ["search", "stream", "lyrics", "playlist"]
     };
   }
   async init() {
@@ -94,6 +94,31 @@ var ArchiveConnector = class {
       url: `${DOWNLOAD_URL}/${encodeURIComponent(id)}/${encodeURIComponent(file.name)}`,
       format: file.name.split(".").pop() || "mp3"
     };
+  }
+  /**
+   * Lyrics via LRCLIB (https://lrclib.net). Archive items rarely include
+   * native lyrics, so we look up the item to recover its title + creator,
+   * then ask LRCLIB by title+artist. Returns synced LRC when available;
+   * falls back to plain lyrics; null on miss. No auth required.
+   */
+  async getLyrics(trackId) {
+    const track = await this.getTrack(trackId);
+    if (!track?.title || !track.artist) return null;
+    const params = new URLSearchParams({
+      track_name: track.title,
+      artist_name: track.artist
+    });
+    if (track.durationSec) params.set("duration", String(track.durationSec));
+    try {
+      const res = await fetch(`https://lrclib.net/api/get?${params}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.syncedLyrics) return { text: data.syncedLyrics };
+      if (data.plainLyrics) return { text: data.plainLyrics };
+      return null;
+    } catch {
+      return null;
+    }
   }
   parseId(trackId) {
     if (trackId.startsWith("ia:")) return trackId.slice(3);
